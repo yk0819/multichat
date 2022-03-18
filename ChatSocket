@@ -1,0 +1,36 @@
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class ChatSocket { // 8000-8009 연결
+		
+	int port;
+		
+	List<PrintWriter>userList = Collections.synchronizedList(new ArrayList<PrintWriter>());
+	PrintWriter pw;
+	
+	public ChatSocket(int port) {
+		this.port = port;
+	}
+
+	public void start() {
+		ServerSocket serverSocket;
+		try {
+			serverSocket = new ServerSocket(this.port);
+			System.out.println("== ChatSocket START ==");
+			while(true) {
+				Socket socket = serverSocket.accept(); // 소켓 연결
+				pw = new PrintWriter(socket.getOutputStream()); // 소켓에서 받은 문자를 담아서 출력
+				userList.add(pw); // 연결이 되면 리스트에 추가	
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
