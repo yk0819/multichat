@@ -1,0 +1,76 @@
+public class ChatServer {
+
+	public static void main(String[] args) { // 4000, 8000-8009 thread
+		
+		System.out.println("== main START ==");
+
+		Thread infothread = new Thread(() -> {
+			InfoSocket ssInfo =  new InfoSocket(4000);
+			ssInfo.start();
+		});
+		infothread.start();
+
+		
+		Thread csthread0 = new Thread(() -> {
+			ChatSocket cs0 =  new ChatSocket(8000);
+			cs0.start();
+		});
+		csthread0.start();
+		
+		// 8001-8009まで
+		Thread csthread1 = new Thread(() -> {
+			ChatSocket cs1 =  new ChatSocket(8001);
+			cs1.start();
+		});
+		csthread1.start();
+
+		Thread csthread2 = new Thread(() -> {
+			ChatSocket cs2 =  new ChatSocket(8002);
+			cs2.start();
+		});
+		csthread2.start();
+		
+		Thread csthread3 = new Thread(() -> {
+			ChatSocket cs3 =  new ChatSocket(8003);
+			cs3.start();
+		});
+		csthread3.start();
+		
+		Thread csthread4 = new Thread(() -> {
+			ChatSocket cs4 =  new ChatSocket(8004);
+			cs4.start();
+		});
+		csthread4.start();
+		
+		Thread csthread5 = new Thread(() -> {
+			ChatSocket cs5 =  new ChatSocket(8005);
+			cs5.start();
+		});
+		csthread5.start();
+		
+		Thread csthread6 = new Thread(() -> {
+			ChatSocket cs6 =  new ChatSocket(8006);
+			cs6.start();
+		});
+		csthread6.start();
+		
+		Thread csthread7 = new Thread(() -> {
+			ChatSocket cs7 =  new ChatSocket(8007);
+			cs7.start();
+		});
+		csthread7.start();
+		
+		Thread csthread8 = new Thread(() -> {
+			ChatSocket cs8 =  new ChatSocket(8008);
+			cs8.start();
+		});
+		csthread8.start();
+		
+		Thread csthread9 = new Thread(() -> {
+			ChatSocket cs9 =  new ChatSocket(8009);
+			cs9.start();
+		});
+		csthread9.start();
+		
+	}
+}
