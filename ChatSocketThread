@@ -1,3 +1,5 @@
+package chat.server;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -8,48 +10,51 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 
 public class ChatSocketThread extends Thread {
-	
+
 	int port;
 	BufferedWriter out = null;	
 	BufferedReader in = null;
-	Socket socket = null;	
-
-	PrintWriter pw = null;
+	Socket socket = null;
+	
+	// 내용저장
 	FileWriter fw = null;
+	File dir = null;
 	File log = null;
 	
+	// 대화내용 저장(yyyy-MM-dd)
+	SimpleDateFormat dateFormat = null;
+	SimpleDateFormat timeFormat = null;
+
 	List<PrintWriter> userList = null;
 	
-	public ChatSocketThread(Socket socket, List userList) {
+	public ChatSocketThread(Socket socket,List userList) {
 		this.socket = socket;
-
-		try {
+		try{
 			this.userList = userList;
-		} catch (Exception e) {
-			e.printStackTrace();
+		}catch (Exception e) {
+			System.out.println(e.getMessage());
 		}
 	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
 		System.out.println("== ChatSocketThread START ==");
 
-		try { // 상대방 정보 얻어오기
+		try {
 			InetSocketAddress isa = (InetSocketAddress) socket.getRemoteSocketAddress();
 			System.out.println("IP: " + isa.getHostName() + ", port: " + socket.getLocalPort());
-
-			// 입출력
+			
 			out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			
@@ -57,19 +62,46 @@ public class ChatSocketThread extends Thread {
 			out.write("\r\n");
 			out.flush();
 			
-			// 화면에 출력
-			String readValue; // 클라이언트에서 보낸 값을 저장하기
-
-			while((readValue = in.readLine()) != null ) { // 클라이언트에서 받은 메세지를 출력
-				System.out.println(readValue);				
-				// 클라이언트에게 메세지를 보냄
-				// 리시브 메서드를 만들어서...
+			String readValue;
+			
+			// 타이틀을 날짜로 지정하여 파일 저장하는 방법
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd"); // 날짜
+            timeFormat = new SimpleDateFormat("hh:mm:ss");  // 시간
+            
+            Date format = new Date();
+    		String today = dateFormat.format(format);
+    		String time = timeFormat.format(format);
+            
+            int portNumber = socket.getLocalPort();
+            
+            String fileName = today + "_" + portNumber + ".txt"; // 파일이름
+            String dirAddress = "C:/Temp/chat/" + fileName + ".txt"; // 폴더주소
+            // 끝
+            
+			while((readValue = in.readLine()) != null ) {
+				System.out.println(readValue);
 				receive(readValue);
+				
+				LocalDateTime now = LocalDateTime.now();
+				String timeFormat = now.format(DateTimeFormatter.ofPattern("HH.mm:ss"));
+
+				dir = new File("C:/Temp/chat"); // 폴더
+				if(dir.exists() == false) { // 폴더가 없다면
+					dir.mkdirs(); // 생성
+				}
+				log = new File(dirAddress); // 파일
+            	if(log.exists() == false) { // 파일이 없다면
+        			log.createNewFile(); // 생성
+        		}
+            	fw = new FileWriter(log, true); // true로 설정하여 다음 줄에 쓰도록 하기            	
+				fw.write(timeFormat + " " + readValue + "\r\n");
+				fw.flush();
 			}
 		} catch (Exception e) {
 			System.out.println(e);
 		} finally {
 			try {
+				if(fw != null) fw.close();
 				if(out != null)out.close();
 				if(in  != null)in.close();
 				if(!socket.isClosed())socket.close();
@@ -78,11 +110,12 @@ public class ChatSocketThread extends Thread {
 			System.out.println("== ChatSocketThread END ==");
 		}
 	}
-	public void receive(String text) { // 매개변수를 주어서 입력받은 값을 보내도록..
-		
-		for(PrintWriter pw : userList) { // 리스트에 추가된 유저에게 보내기, 향상된 for문
-			pw.println(text);
-			pw.flush();
+	
+	private void receive(String text) {
+		for (PrintWriter writer : userList){
+
+			writer.println(text);
+			writer.flush();
 		}
 	}
 }
