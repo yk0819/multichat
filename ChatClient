@@ -1,3 +1,5 @@
+package chat.client;
+	
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -9,21 +11,20 @@ import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 
-import org.json.JSONArray;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class ChatClient {
 	
-	public static void main(String[] args) throws ParseException {
+	public static void main(String[] args) {
 
 		Socket infoSocket = null;
 		Socket chatSocket = null;
@@ -35,21 +36,11 @@ public class ChatClient {
 		String rNumber = null;
 		String nName   = null;
 		
-		// 내용저장
-		FileWriter fw = null;
-		File dir = null;
-		File log = null;
-		
-		// 대화내용 저장(yyyy-MM-dd)
-		SimpleDateFormat dateFormat = null;
-		Calendar ca = null;
-				
-		try { // 메인에 연결
-			System.out.println("== ChatClient START ==");
+		try {
+			System.out.println("== ChatClient1 START ==");
 			infoSocket = new Socket();
 			infoSocket.connect(new InetSocketAddress(IP, infoServerPort));
 
-			// infoSocket(4000)에서 입출력을 받는다
 			in = new BufferedReader(new InputStreamReader(infoSocket.getInputStream()));
 			out = new BufferedWriter(new OutputStreamWriter(infoSocket.getOutputStream()));
 
@@ -65,11 +56,9 @@ public class ChatClient {
 			if(!infoSocket.isClosed())infoSocket.close();
 			if(out != null)out.close();
 			if(in != null)in.close();
-			// info socket close
-			
 			
 			input= new Scanner(System.in);
-
+			
 			while(true) {
 				//방번호 입력
 				System.out.println("방번호 입력>>");
@@ -77,25 +66,14 @@ public class ChatClient {
 				
 				//방번호 유효성 확인 하기 
 				
-				List<String> list = new ArrayList<String>();
-				list.add("8000");
-				list.add("8001");
-				list.add("8002");
-				list.add("8003");
-				list.add("8004");
-				list.add("8005");
-				list.add("8006");
-				list.add("8007");
-				list.add("8008");
-				list.add("8009");
+				// 파싱 객체 생성, 파싱할 내용은 서버에서 받은 temp내용(InputStreamReader)
+				// 오브젝트로 바꿔서 배열로 다시 변환(생성 역순으로 풀어야함)
+				JSONParser jsonParser = new JSONParser();
+				JSONObject jsonObject = (JSONObject) jsonParser.parse(temp);
+				JSONArray jsonArray = (JSONArray) jsonObject.get("port_list");
 				
-				JSONArray arr = new JSONArray();
-				for(int i = 0; i<list.size(); i++) {
-					arr.put(list.get(i));
-				}
-				
-				while(!list.contains(rNumber)) {
-					System.out.println("입력하신 방번호는 유효하지 않습니다. 다시 입력해주세요");
+				while(!jsonArray.contains(rNumber)) {
+					System.out.println("입력하신 방번호는 유효하지 않습니다");
 					System.out.print("방번호 입력>>");
 					rNumber = input.nextLine();
 				}
@@ -108,60 +86,33 @@ public class ChatClient {
 				}
 			}
 			
-			System.out.println("방번호 입력: "+rNumber+" 입니다.");			
+			System.out.println("방번호 입력: "+rNumber+" 입니다.");
 			System.out.println("닉네임 입력: "+nName  +" 입니다.");
 			
-			// 소켓 연결
 			chatSocket = new Socket();
-			chatSocket.connect(new InetSocketAddress(IP, Integer.parseInt(rNumber))); // String→Integer
+			chatSocket.connect(new InetSocketAddress(IP, Integer.parseInt(rNumber)));
 			
 			out = new BufferedWriter(new OutputStreamWriter(chatSocket.getOutputStream()));
 			in = new BufferedReader(new InputStreamReader(chatSocket.getInputStream()));
 			
 			if((temp = in.readLine() ) != null){
-				System.out.println(temp);				
+				System.out.println(temp);
 			}
 			
-			Output output = new Output(chatSocket,nName); // 매개변수 소켓명과 이름
+			Output output = new Output(chatSocket,nName);
             output.start();
-            
-            String readValue;
-            
-            // 타이틀을 날자로 지정하여 파일 저장하는 방법
-            dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Date time = new Date();
-            String today = dateFormat.format(time);
-            Date selectDate = dateFormat.parse(today);
-            ca = new GregorianCalendar(Locale.JAPAN);
-            ca.setTime(time);
-            today = dateFormat.format(ca.getTime());
-            
-            String fileName = today + "_" + rNumber + ".txt"; // 파일이름
-            String dirAddress = "C:/Temp/chat/" + fileName + ".txt"; // 폴더주소
-            // 끝
-            
+			
+			String readValue;
+			
 			while((readValue = in.readLine()) != null ) {
 				System.out.println(readValue);
-				
-				dir = new File("C:/Temp/chat"); // 폴더
-				if(dir.exists() == false) { // 폴더가 없다면
-					dir.mkdirs(); // 생성
-				}
-				log = new File(dirAddress); // 파일
-            	if(log.exists() == false) { // 파일이 없다면
-        			log.createNewFile(); // 생성
-        		}
-            	fw = new FileWriter(log, true); // true로 설정하여 다음 줄에 쓰도록 하기
-				fw.write(readValue + "\r\n");
-				fw.flush();
 			}
 		} catch (ConnectException e) {
 			System.out.println(e);
 		} catch (Exception e) {
 			System.out.println(e);
 		} finally {
-			try { // close
-				if(fw != null) fw.close();
+			try {
 				if(input != null)input.close();
 				if(out != null)out.close();
 				if(in != null)in.close();
@@ -169,7 +120,7 @@ public class ChatClient {
 				if(!chatSocket.isClosed())chatSocket.close();
 			}catch (IOException e) {
 			}
-			System.out.println("== ChatClient END ==");
+			System.out.println("== ChatClient1 END ==");
 			System.exit(0);
 		}
 	}
@@ -181,13 +132,10 @@ class Output extends Thread{
 	Socket socket;
 	String name;
 	
-	PrintWriter pw = null;
-	FileWriter fw = null;
-	File log = null;
-	
 	Output(Socket socket,String name){
         this.socket=socket;
         this.name = name;
+
         try {
             in = new BufferedReader(new InputStreamReader(System.in));
             out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream())));
@@ -199,24 +147,31 @@ class Output extends Thread{
 	
     public void run() {
         String data;
+        Boolean end = false; // 거짓으로 주어서 특정 값을 받으면 빠져나오게 한다
+
         while(true) {
             try {
                 //키보드로부터 입력
-            	System.out.print(">");
                 data = in.readLine();
-                data = "["+name+"] "+data;
+                
+                // 여기서 지정해주지 않으면 data 값이 바뀌므로 x
+                if(data.equalsIgnoreCase("q")) {
+                	end = true;
+                	data = name + "님이 나갔습니다"; // send to server 
+                }
+                                
+                data = '['+name+']'+data;
                 out.println(data);//서버로 데이터 전송
                 out.flush();
                 
-                if(data.equals("exit") || socket.isClosed()){
-                	socket.isClosed();
+                if(end || socket.isClosed()){ // boolean 또는 socket close인 경우
                     break;
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        
+        // 본인에게 보이는 메세지
         System.out.println("서버와 연결 종료 Output 쓰레드 종료");
         try {
             in.close();
@@ -226,4 +181,5 @@ class Output extends Thread{
             e.printStackTrace();
         }
     }
+
 }
